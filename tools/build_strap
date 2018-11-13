@@ -165,7 +165,11 @@ function upload_strap
 
 	build_strap
 
-	gtar -C "$cache_dir" -czf - . | mput -q -p $mdir
+	gtar -C "$cache_dir" -czf - . | mput -q -p $mdir || {
+		echo "Failed to upload tarball" >&2
+		exit 1
+	}
+
 	echo "Uploaded $manta_host/$mdir"
 }
 
