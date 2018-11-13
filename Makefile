@@ -316,6 +316,10 @@ FORCEARG_yes=-f
 	    -a $(ADJUNCT_TARBALL) $(FORCEARG_$(FORCE_STRAP_REBUILD))
 	touch $@
 
+# build and upload a proto strap cache
+strap-cache:
+	$(ROOT)/tools/build_strap -j $(MAX_JOBS) -a $(ADJUNCT_TARBALL) -u
+
 # additional illumos-extra content for proto itself
 0-extra-stamp: 0-illumos-stamp
 	(cd $(ROOT)/projects/illumos-extra && \
