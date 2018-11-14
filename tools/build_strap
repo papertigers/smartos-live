@@ -221,7 +221,6 @@ function populate_strap
 
 }
 
-export PATH=/usr/bin:/usr/sbin:/sbin:/opt/local/bin:/opt/local/sbin
 set -o pipefail
 
 while getopts "a:d:fhj:u" arg; do
