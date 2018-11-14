@@ -28,7 +28,7 @@
 # true if the user specified non-default compilers.
 #
 
-usage="$0 -a adjunct.tar [-f] [-j maxjobs] [-u | -d protodir]"
+usage="$0 [-l | -a adjunct.tar [-f] [-j maxjobs] [-u | -d protodir]]"
 wsroot=$(cd $(dirname $0)/../; pwd)
 pkgin_file="/opt/local/etc/pkgin/repositories.conf"
 manta_host="https://us-east.manta.joyent.com"
@@ -40,6 +40,7 @@ adjunct=""
 protodir=""
 max_jobs="128"
 force_build="no"
+report_loc="no"
 upload="no"
 
 function fatal
@@ -149,11 +150,6 @@ function upload_strap
 	local mdir="$2"
 
 	if [[ "$force_build" = "no" ]]; then
-		if mls $mdir >/dev/null 2>&1; then
-			echo "$mdir exists; not building"
-			return
-		fi
-
 		if [[ -d "$cache_dir" ]]; then
 			echo "$cache_dir exists; not building"
 			return
@@ -165,7 +161,9 @@ function upload_strap
 
 	build_strap
 
-	gtar -C "$cache_dir" -czf - . | mput -q -p $mdir || {
+	mkdir -p $wsroot/output/
+
+	gtar -C "$cache_dir" -czf $wsroot/output/proto.strap.tgz || {
 		echo "Failed to upload tarball" >&2
 		exit 1
 	}
@@ -221,10 +219,10 @@ function populate_strap
 
 }
 
-export PATH=/usr/bin:/usr/sbin:/sbin:/opt/local/bin:/opt/local/sbin:/root/bin
+export PATH=/usr/bin:/usr/sbin:/sbin:/opt/local/bin:/opt/local/sbin
 set -o pipefail
 
-while getopts "a:d:fhj:u" arg; do
+while getopts "a:d:fhlj:u" arg; do
 	case $arg in
 	a)
 		adjunct=$OPTARG ;;
@@ -237,6 +235,8 @@ while getopts "a:d:fhj:u" arg; do
 		exit 0 ;;
 	j)
 		max_jobs=$OPTARG ;;
+	l)
+		report_loc="yes" ;;
 	u)
 		upload="yes" ;;
 	?)
@@ -244,6 +244,11 @@ while getopts "a:d:fhj:u" arg; do
 		exit 1 ;;
 	esac
 done
+
+if [[ "$report_loc" = "yes" ]]; then
+	echo $manta_dir/$(identify_pkgsrc_branch)/$(identify_srcsha)/proto.strap.tgz
+	exit 0
+fi
 
 [[ -n "$adjunct" ]] || fatal "missing -a argument"
 [[ -d "$srcdir" ]] || fatal "cannot find illumos-extra in $srcdir"

@@ -316,7 +316,11 @@ FORCEARG_yes=-f
 	    -a $(ADJUNCT_TARBALL) $(FORCEARG_$(FORCE_STRAP_REBUILD))
 	touch $@
 
-# build and upload a proto strap cache
+# report the Manta location of the proto.strap cache
+strap-cache-location:
+	@$(ROOT)/tools/build_strap -l
+
+# build and upload a proto.strap cache
 strap-cache:
 	$(ROOT)/tools/build_strap -j $(MAX_JOBS) -a $(ADJUNCT_TARBALL) -u
 
