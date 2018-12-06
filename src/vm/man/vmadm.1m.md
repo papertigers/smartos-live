@@ -37,8 +37,8 @@ tab-complete UUIDs rather than having to type them out for every command.
 
       create-snapshot <uuid> <snapname>
 
-        Support for snapshots is currently experimental. It only works for OS
-        VMS which also have no additional datasets.
+        Support for snapshots is currently experimental. It only works for bhyve
+        VMs and OS VMs which also have no additional datasets.
 
         The <snapname> parameter specifies the name of the snapshot to take
         of the specified VM. The snapname must be 64 characters or less and
@@ -83,8 +83,8 @@ tab-complete UUIDs rather than having to type them out for every command.
 
       delete-snapshot <uuid> <snapname>
 
-        Support for snapshots is currently experimental. It only works for OS
-        VMS which also have no additional datasets.
+        Support for snapshots is currently experimental. It only works for bhyve
+        VMs and OS VMs which also have no additional datasets.
 
         This command deletes the ZFS snapshot that exists with the name
         <snapname> from the VM with the specified uuid. You cannot undo this
@@ -260,8 +260,8 @@ tab-complete UUIDs rather than having to type them out for every command.
 
       rollback-snapshot <uuid> <snapname>
 
-        Support for snapshots is currently experimental. It only works for OS
-        VMS which also have no additional datasets.
+        Support for snapshots is currently experimental. It only works for bhyve
+        VMs and OS VMs which also have no additional datasets.
 
         This command rolls the dataset backing the the VM with the specified
         uuid back to its state at the point when the snapshot with snapname was
@@ -440,6 +440,23 @@ tab-complete UUIDs rather than having to type them out for every command.
         except that the options are add_disks, remove_disks and update_disks
         and instead of "mac" these will be keyed on "path".
 
+        When updating disks.*.size, the system protects against accidental
+        shrinkage and associated data loss. If the size of a disk is reduced,
+        the end of the disk is removed. If that space contains data, it is
+        permanently lost. Snapshots do not provide protection. To allow a disk
+        to shrink, set the dangerous_allow_shrink property to true. This
+        property is used only for the update - it is not stored. For example,
+        the following will resize a disk to 10 MiB, even if it had previously
+        been larger.
+
+         {
+           "update_disks": {
+             "path": "/dev/zvol/rdsk/zones/.../disk1",
+             "size": 10,
+             "dangerous_allow_shrink": true
+           }
+         }
+
         Those fields marked in the PROPERTIES section below as updatable and
         modified with '(live update)' mean that when you update the property
         the change takes effect immediately for the VM without the VM being
@@ -494,9 +511,9 @@ tab-complete UUIDs rather than having to type them out for every command.
 
 ## SNAPSHOTS
 
-    Snapshots are currently only implemented for OS VMs, and only for those
-    that do not utilize delegated datasets or any other datasets other than
-    the zoneroot dataset.
+    Snapshots are currently only implemented for bhyve VMs and OS VMs, and only
+    for those that do not utilize delegated datasets or any other datasets other
+    than the zoneroot dataset and its dependent datasets.
 
     When you create a snapshot with create-snapshot, it will create a ZFS
     snapshot of that dataset with the name dataset@vmsnap-<snapname> and the
@@ -892,6 +909,44 @@ tab-complete UUIDs rather than having to type them out for every command.
         type: string (UUID)
         vmtype: HVM
         listable: yes (see above)
+        create: yes
+        update: yes (special, see description in 'update' section above)
+        default: no
+
+    disks.*.pci_slot:
+
+        Specifies the virtual PCI slot that this disk will occupy. Bhyve places
+        each disk into a PCI slot that is identified by the PCI bus, device, and
+        function (BDF). The slot may be specified as <bus>:<device>:<function>
+        ("0:4:0"), <device>:<function> ("4:0") or <device> ("4"). If bus or
+        function is not specified, 0 is used.
+
+        Per the PCI specification legal values for bus, device and function are:
+
+          bus: 0 - 255, inclusive
+          device: 0 - 31, inclusive
+          function: 0 - 7, inclusive
+
+        All functions on devices 0, 6, 30, and 31 on bus 0 are reserved.  For
+        maximum compatibility with boot ROMs and guest operating systems, the
+        disk with boot=true should exist on bus 0 device 3, 4, or 5. If any
+        function other than zero (e.g. 0:5:1) is used, function zero on the same
+        device (e.g. 0:5:0) must also be used for the guest OS to recognize the
+        disk in the non-zero slot.
+
+        If pci_slot is not specified, disks will be assigned to available slots
+        in the 0:4:0 - 0:4:7 range. Disks with media=cdrom will be assigned to
+        0:3:0 - 0:3:7.
+
+        The format used by pci_slot is slightly different than that reported by
+        the Linux `lspci` utility that may be used in guests. The format used by
+        `lspci` is <bus>:<device>.<function> with each number is represented in
+        hexadecimal. Also notice the mixture of `:` and `.` separators by
+        `lspci`.
+
+        type: string (<bus>:<device>:<function>, <device>:function, or <device>)
+        vmtype: bhyve
+        listable: yes
         create: yes
         update: yes (special, see description in 'update' section above)
         default: no
@@ -1807,14 +1862,14 @@ tab-complete UUIDs rather than having to type them out for every command.
 
     routes:
 
-	This is a key-value object that maps destinations to gateways. These
-	will be set as static routes in the VM. The destinations can be either
-	IPs or subnets in CIDR form. The gateways can either be IP addresses,
-	or can be of the form "nics[0]" or "macs[aa:bb:cc:12:34:56]". Using
-	nics[] or macs[] specifies a link-local route. When using nics[] the IP
-	of the numbered nic in that VM's nics array (the first nic is 0) is
-	used. When using macs[] the IP of the nic with the matching mac address
-	in that VM's nic array is used. As an example:
+        This is a key-value object that maps destinations to gateways. These
+        will be set as static routes in the VM. The destinations can be either
+        IPs or subnets in CIDR form. The gateways can either be IP addresses,
+        or can be of the form "nics[0]" or "macs[aa:bb:cc:12:34:56]". Using
+        nics[] or macs[] specifies a link-local route. When using nics[] the IP
+        of the numbered nic in that VM's nics array (the first nic is 0) is
+        used. When using macs[] the IP of the nic with the matching mac address
+        in that VM's nic array is used. As an example:
 
             {
                 "10.2.2.0/24": "10.2.1.1",
@@ -1822,10 +1877,10 @@ tab-complete UUIDs rather than having to type them out for every command.
                 "10.4.0.1": "macs[aa:bb:cc:12:34:56]"
             }
 
-	This sets three static routes: to the 10.2.2.0/24 subnet with a gateway
-	of 10.2.1.1, a link-local route to the host 10.3.0.1 over the VM's
-	second nic, and a link-local route to the host 10.4.0.1 over the VM's
-	nic with the corresponding mac address.
+        This sets three static routes: to the 10.2.2.0/24 subnet with a gateway
+        of 10.2.1.1, a link-local route to the host 10.3.0.1 over the VM's
+        second nic, and a link-local route to the host 10.4.0.1 over the VM's
+        nic with the corresponding mac address.
 
         type: object
         vmtype: OS
@@ -1835,12 +1890,13 @@ tab-complete UUIDs rather than having to type them out for every command.
 
     snapshots (EXPERIMENTAL):
 
-        For OS VMs, this will display a list of snapshots from which you can
-        restore the root dataset for your VM.  Currently this is only supported
-        when your VM does not have any delegated datasets.
+        For bhyve VMs and OS VMs, this will display a list of snapshots from
+        which you can restore the root dataset and its dependent datasets for
+        your VM.  Currently this is only supported when your VM does not have
+        any delegated datasets.
 
         type: array
-        vmtype: OS
+        vmtype: OS or bhyve
         listable: no
         create: no (but you can use create-snapshot)
         update: no (but you can use rollback-snapshot and delete-snapshot)
