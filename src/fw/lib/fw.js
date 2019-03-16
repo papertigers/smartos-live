@@ -31,6 +31,7 @@ var assert = require('assert-plus');
 var clone = require('clone');
 var filter = require('./filter');
 var fs = require('fs');
+// XXX not ok for firewaller-agent because this won't exist on old CNs
 var features = require('/usr/node/node_modules/illumos-features');
 var mkdirp = require('mkdirp');
 var mod_addr = require('ip6addr');
@@ -1106,7 +1107,7 @@ function ipfRuleObj(opts) {
 
     if (opts.type === 'wildcard' && opts.value === 'any') {
         rule.protoTargets.forEach(function (t) {
-            var wild = util.format('%s %s quick proto %s from any to any',
+            var wild = util.format('%s %s quick proto %s from any to any %s',
                 rule.action === 'allow' ? 'pass' : 'block',
                 dir === 'from' ? 'out' : 'in',
                 ipfProto,
@@ -1699,7 +1700,6 @@ function applyChanges(opts, log, callback) {
 
         // Generate the ipf files for each VM
         function reloadPlan(res, cb) {
-            log.debug({features: features}, 'got features');
             prepareIPFdata({
                 allVMs: opts.allVMs,
                 remoteVMs: opts.allRemoteVMs,
