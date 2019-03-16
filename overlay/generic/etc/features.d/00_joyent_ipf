@@ -1,0 +1,6 @@
+#
+# Copyright 2019 Joyent, Inc.
+#
+
+# Can ipf's in and out rules be tagged with a uuid via `set-tag(uuid=:uuid)`?
+com.joyent.driver.ipf.rules.in-out-uuid=true

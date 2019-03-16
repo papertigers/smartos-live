@@ -78,6 +78,7 @@ SYSINFO_MOD_DIR = $(DESTDIR)/usr/lib/sysevent/modules
 # These files will get run through jsstyle and jslint on 'make check'
 JS_CHECK_TARGETS=\
 	filewait.js \
+	node_modules/illumos-features.js \
 	node_modules/{system,onlyif,net-boot-config}.js \
 	net-boot-config \
 	vm/sbin/*.js \
