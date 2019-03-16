@@ -31,6 +31,7 @@ var assert = require('assert-plus');
 var clone = require('clone');
 var filter = require('./filter');
 var fs = require('fs');
+var features = require('/usr/node/node_modules/illumos-features');
 var mkdirp = require('mkdirp');
 var mod_addr = require('ip6addr');
 var mod_ipf = require('./ipf');
@@ -68,6 +69,7 @@ var IPF6_CONF_OLD = '%s/config/ipf6.conf.old';
 var KEEP_FRAGS = ' keep frags';
 var KEEP_STATE = ' keep state';
 var NOT_RUNNING_MSG = 'Could not find running zone';
+var FEATURE_INOUT_UUID = 'com.joyent.driver.ipf.rules.in-out-uuid';
 // VM fields that affect filtering
 var VM_FIELDS = [
     'firewall_enabled',
@@ -1097,12 +1099,14 @@ function ipfRuleObj(opts) {
         type: opts.type,
         uuid: rule.uuid,
         value: opts.value,
-        version: rule.version
+        version: rule.version,
+        uuidTag: (features.feature[FEATURE_INOUT_UUID] && rule.uuid) ?
+            sprintf(' set-tag(uuid=%s)', rule.uuid) : ''
     };
 
     if (opts.type === 'wildcard' && opts.value === 'any') {
         rule.protoTargets.forEach(function (t) {
-            var wild = util.format('%s %s quick proto %s from any to any %s',
+            var wild = util.format('%s %s quick proto %s from any to any',
                 rule.action === 'allow' ? 'pass' : 'block',
                 dir === 'from' ? 'out' : 'in',
                 ipfProto,
@@ -1135,7 +1139,7 @@ function ipfRuleObj(opts) {
                     ipfProto,
                     dir === 'to' ? target : 'any',
                     dir === 'to' ? 'any' : target,
-                    protoTarget(rule, t)));
+                    protoTarget(rule, t)))
         });
     });
 
@@ -1273,10 +1277,10 @@ function prepareIPFdata(opts, log, callback) {
             ipf6Conf.push(sortObj.header);
 
             sortObj.v4text.forEach(function (line) {
-                ipf4Conf.push(line + ktxt);
+                ipf4Conf.push(line + ktxt + sortObj.uuidTag);
             });
             sortObj.v6text.forEach(function (line) {
-                ipf6Conf.push(line + ktxt);
+                ipf6Conf.push(line + ktxt + sortObj.uuidTag);
             });
         });
 
@@ -1688,8 +1692,14 @@ function applyChanges(opts, log, callback) {
 
     pipeline({
     funcs: [
+        // Determine which platform-specific features are available
+        function loadFeatures(res, cb) {
+            features.load({log: log}, cb);
+        },
+
         // Generate the ipf files for each VM
         function reloadPlan(res, cb) {
+            log.debug({features: features}, 'got features');
             prepareIPFdata({
                 allVMs: opts.allVMs,
                 remoteVMs: opts.allRemoteVMs,
