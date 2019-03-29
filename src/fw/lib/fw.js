@@ -1263,10 +1263,12 @@ function prepareIPFdata(opts, log, callback) {
         var iks = hasKey(keepInboundState, vm) ? keepInboundState[vm] : {};
 
         conf[vm].sort(compareRules).forEach(function (sortObj) {
+            assert.string(sortObj.uuidTag, 'sortObj.uuidTag');
             var ktxt = KEEP_FRAGS;
-            if ((sortObj.direction === 'from' && sortObj.action === 'allow')
+            if (sortObj.uuidTag !== ''
+                || (sortObj.direction === 'from' && sortObj.action === 'allow')
                 || (sortObj.direction === 'to' && iks[sortObj.protocol])) {
-                ktxt += KEEP_STATE;
+                ktxt += KEEP_STATE + sortObj.uuidTag;
             }
 
             if (!hasKey(rulesIncluded, sortObj.uuid)) {
@@ -1278,10 +1280,10 @@ function prepareIPFdata(opts, log, callback) {
             ipf6Conf.push(sortObj.header);
 
             sortObj.v4text.forEach(function (line) {
-                ipf4Conf.push(line + ktxt + sortObj.uuidTag);
+                ipf4Conf.push(line + ktxt);
             });
             sortObj.v6text.forEach(function (line) {
-                ipf6Conf.push(line + ktxt + sortObj.uuidTag);
+                ipf6Conf.push(line + ktxt);
             });
         });
 
