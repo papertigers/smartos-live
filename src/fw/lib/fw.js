@@ -1086,6 +1086,16 @@ function ipfRuleObj(opts) {
     // ipfilter uses /etc/protocols which calls ICMPv6 'ipv6-icmp'
     var ipfProto = (rule.protocol === 'icmp6') ? 'ipv6-icmp' : rule.protocol;
 
+    var readtags = [];
+    if (features.feature[FEATURE_INOUT_UUID]) {
+        if (rule.uuid) {
+            readtags.push(util.format('uuid=%s', rule.uuid));
+        }
+        if (rule.log) {
+            readtags.push('cfwlog');
+        }
+    }
+
     var sortObj = {
         action: rule.action,
         direction: dir,
@@ -1101,8 +1111,8 @@ function ipfRuleObj(opts) {
         uuid: rule.uuid,
         value: opts.value,
         version: rule.version,
-        uuidTag: (features.feature[FEATURE_INOUT_UUID] && rule.uuid) ?
-            sprintf(' set-tag(uuid=%s)', rule.uuid) : ''
+        allTags: readtags.length !== 0 ?
+            util.format(' set-tag(%s)', readtags.join(', ')) : ''
     };
 
     if (opts.type === 'wildcard' && opts.value === 'any') {
@@ -1263,12 +1273,12 @@ function prepareIPFdata(opts, log, callback) {
         var iks = hasKey(keepInboundState, vm) ? keepInboundState[vm] : {};
 
         conf[vm].sort(compareRules).forEach(function (sortObj) {
-            assert.string(sortObj.uuidTag, 'sortObj.uuidTag');
+            assert.string(sortObj.allTags, 'sortObj.allTags');
             var ktxt = KEEP_FRAGS;
-            if (sortObj.uuidTag !== ''
+            if (sortObj.allTags !== ''
                 || (sortObj.direction === 'from' && sortObj.action === 'allow')
                 || (sortObj.direction === 'to' && iks[sortObj.protocol])) {
-                ktxt += KEEP_STATE + sortObj.uuidTag;
+                ktxt += KEEP_STATE + sortObj.allTags;
             }
 
             if (!hasKey(rulesIncluded, sortObj.uuid)) {
