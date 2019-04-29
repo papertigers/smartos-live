@@ -9,7 +9,7 @@
 # source.  A copy of the CDDL is also available via the Internet at
 # http://www.illumos.org/license/CDDL.
 #
-# Copyright 2018 Joyent, Inc.
+# Copyright 2019 Joyent, Inc.
 #
 
 #
@@ -42,6 +42,10 @@ max_jobs="128"
 force_build="no"
 report_loc="no"
 create_cache="no"
+
+if [[ -f $wsroot/build.env ]]; then
+	source $wsroot/build.env
+fi
 
 function fatal
 {
@@ -85,6 +89,7 @@ function build_strap
 	DESTDIR=$(echo $protodir | sed 's+//*+/+g')
 
 	verbose gmake STRAP=strap MAX_JOBS=$max_jobs DESTDIR=$DESTDIR \
+	    GCC4.host_prefix=$HOST_GCC4_PREFIX \
 	    -C $wsroot/projects/illumos-extra install_strap ||
 	    fatal "failed to build install_strap"
 
