@@ -28,3 +28,4 @@ si3124	scsi-self-identifying
 dr_sas	scsi-self-identifying
 skd	disk
 smrt	scsi-self-identifying
+hv_storsvc	scsi-self-identifying
