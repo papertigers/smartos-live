@@ -304,3 +304,10 @@ viona 306
 ppt 307
 coretemp 308
 amdf17nbdf 309
+hv_heartbeat 310
+hv_kvp 311
+hv_netvsc 312
+hv_shutdown 313
+hv_storvsc 314
+hv_timesync 315
+hv_vmbus 316
